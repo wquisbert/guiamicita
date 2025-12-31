@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SEDES LA PAZ - SUISD</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        sedes: {
+                            50: '#fdf2f2',
+                            100: '#fde8e8',
+                            600: '#e11d48', // Rojo Vibrante
+                            800: '#9f1239', // Rojo Institucional
+                            900: '#881337', // Rojo Oscuro
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; overflow: hidden; }
+        .scroller::-webkit-scrollbar { width: 6px; }
+        .scroller::-webkit-scrollbar-track { background: transparent; }
+        .scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .scroller::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Highlight búsqueda */
+        mark { background-color: #fef08a; color: #881337; padding: 0 2px; border-radius: 2px; }
+        
+        .active-item {
+            background-color: #fff1f2;
+            border-left: 4px solid #e11d48;
+            padding-left: 0.75rem;
+        }
+
+        /* Iframe Responsive */
+        .responsive-iframe {
+            position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            width: 100%; height: 100%; border: none;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col text-slate-800">
+
+    <header class="h-16 md:h-20 bg-gradient-to-r from-sedes-900 to-sedes-800 text-white shadow-lg z-50 shrink-0 flex items-center justify-between px-4 relative">
+        <div class="absolute right-0 top-0 opacity-10 pointer-events-none">
+            <span class="material-icons-round text-8xl">local_hospital</span>
+        </div>
+
+        <div class="flex items-center gap-3 z-10">
+            <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-lg bg-white/10 hover:bg-white/20 transition backdrop-blur-md">
+                <span class="material-icons-round">menu</span>
+            </button>
+            <div>
+                <h1 class="font-bold text-sm md:text-xl leading-none tracking-tight">SEDES LA PAZ - SUISD</h1>
+                <p class="text-[10px] md:text-xs text-sedes-100 opacity-90 font-medium tracking-wide mt-1">MI CITA: GUÍAS, TUTORIALES Y NORMAS</p>
+            </div>
+        </div>
+
+        <div id="loader" class="hidden md:flex items-center gap-2 bg-black/30 px-3 py-1 rounded-full border border-white/10">
+            <div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-[10px] font-bold">CARGANDO DRIVE...</span>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden relative">
+
+        <aside id="sidebar" class="fixed inset-y-0 left-0 w-80 lg:w-96 bg-white z-40 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 shadow-2xl lg:shadow-none border-r border-slate-200 flex flex-col">
+            
+            <div class="h-16 flex items-center justify-between px-4 bg-sedes-900 text-white lg:hidden shrink-0">
+                <span class="font-bold text-sm">RECURSOS</span>
+                <button onclick="toggleSidebar()" class="p-2"><span class="material-icons-round">close</span></button>
+            </div>
+
+            <div class="p-4 bg-white z-10 space-y-3 shadow-sm">
+                <div class="relative group">
+                    <span class="material-icons-round absolute left-3 top-2.5 text-slate-400 group-focus-within:text-sedes-600 transition-colors">search</span>
+                    <input type="text" id="search" onkeyup="renderList()" placeholder="Buscar en Drive..." 
+                           class="w-full pl-10 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-sedes-600 focus:ring-1 focus:ring-sedes-600 transition-all">
+                    <button onclick="document.getElementById('search').value=''; renderList()" class="absolute right-2 top-2.5 text-slate-400 hover:text-red-500">
+                        <span class="material-icons-round text-base">close</span>
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="setFilter('all')" id="btn-all" class="flex-1 py-1.5 text-[10px] font-bold rounded shadow-sm bg-sedes-600 text-white transition-all">TODOS</button>
+                    <button onclick="setFilter('video')" id="btn-video" class="flex-1 py-1.5 text-[10px] font-bold rounded text-slate-500 hover:bg-slate-100 transition-all">VIDEOS</button>
+                    <button onclick="setFilter('pdf')" id="btn-pdf" class="flex-1 py-1.5 text-[10px] font-bold rounded text-slate-500 hover:bg-slate-100 transition-all">DOCS</button>
+                </div>
+            </div>
+
+            <div id="content-list" class="flex-1 overflow-y-auto scroller p-2 space-y-2 bg-slate-50">
+                </div>
+            
+            <div class="p-2 bg-white border-t border-slate-100 text-center text-[10px] text-slate-400">
+                Sincronizado con Google Drive™
+            </div>
+        </aside>
+
+        <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-30 hidden lg:hidden backdrop-blur-sm transition-opacity"></div>
+
+        <section class="flex-1 bg-slate-100 relative flex flex-col w-full h-full">
+            
+            <div id="view-container" class="hidden w-full h-full relative bg-black">
+                
+                <div class="hidden lg:flex bg-white border-b border-slate-200 px-4 h-12 justify-between items-center shadow-sm z-10 relative">
+                    <span id="resource-title" class="text-xs font-bold text-slate-700 truncate max-w-md">Seleccione un archivo</span>
+                    <a id="btn-download" href="#" target="_blank" class="flex items-center gap-1 text-[10px] font-bold bg-sedes-50 text-sedes-700 px-3 py-1 rounded hover:bg-sedes-100 transition">
+                        DESCARGAR <span class="material-icons-round text-sm">download</span>
+                    </a>
+                </div>
+
+                <div class="relative flex-1 w-full h-full bg-slate-900">
+                    <iframe id="main-frame" class="responsive-iframe" src="" allow="autoplay; fullscreen"></iframe>
+                </div>
+                
+                <div id="mob-pdf-overlay" class="hidden lg:hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-50 p-6 text-center z-20">
+                    <div class="w-20 h-20 bg-white rounded-2xl shadow-lg flex items-center justify-center mb-4 text-sedes-600">
+                        <span class="material-icons-round text-5xl">picture_as_pdf</span>
+                    </div>
+                    <h3 id="mob-title" class="font-bold text-slate-800 text-lg mb-2">Documento</h3>
+                    <p class="text-xs text-slate-500 mb-6">Para leer cómodamente en tu celular, ábrelo aquí:</p>
+                    <a id="btn-mob-open" href="#" target="_blank" class="w-full max-w-xs bg-sedes-600 text-white py-3 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2">
+                        <span>ABRIR DOCUMENTO</span>
+                        <span class="material-icons-round">open_in_new</span>
+                    </a>
+                </div>
+            </div>
+
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 z-0">
+                <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                    <span class="material-icons-round text-4xl text-slate-300">cloud_sync</span>
+                </div>
+                <h3 class="font-bold text-slate-700">Biblioteca Digital</h3>
+                <p class="text-xs text-slate-400 mt-1">Conectando con SEDES Drive...</p>
+                <button onclick="toggleSidebar()" class="mt-6 lg:hidden px-6 py-2 bg-sedes-800 text-white text-xs font-bold rounded-full shadow-lg">
+                    VER ARCHIVOS
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN (PEGAR TU URL DE APPS SCRIPT AQUÍ)
+        // ==========================================
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwOuy5VaBNMYEI3my_pAZKuLWLdWIJ18Ya9vBZ4F45X8cKZtR-FFNbmTZiWom6GW-RkVw/exec'; 
+
+        // ESTADO
+        let db = [];
+        let filter = 'all';
+        let currentId = null;
+
+        // DOM Elements
+        const elList = document.getElementById('content-list');
+        const loader = document.getElementById('loader');
+        const searchInput = document.getElementById('search');
+        
+        // Vistas
+        const viewContainer = document.getElementById('view-container');
+        const emptyState = document.getElementById('empty-state');
+        const iframe = document.getElementById('main-frame');
+        
+        // Controls
+        const titlePc = document.getElementById('resource-title');
+        const btnDown = document.getElementById('btn-download');
+        const mobOverlay = document.getElementById('mob-pdf-overlay');
+        const mobTitle = document.getElementById('mob-title');
+        const btnMobOpen = document.getElementById('btn-mob-open');
+
+        // --- 1. CARGA INICIAL ---
+        window.onload = async () => {
+            elList.innerHTML = `<div class="p-6 text-center text-xs text-slate-400 flex flex-col items-center"><div class="w-6 h-6 border-2 border-sedes-600 border-t-transparent rounded-full animate-spin mb-2"></div>Cargando archivos...</div>`;
+            
+            try {
+                const response = await fetch(APPS_SCRIPT_URL);
+                const data = await response.json();
+                
+                // Procesar datos
+                db = data;
+                loader.classList.add('hidden'); // Ocultar loader header
+                
+                // Actualizar texto empty state
+                document.querySelector('#empty-state h3').innerText = "Seleccione un archivo";
+                document.querySelector('#empty-state p').innerText = `${db.length} recursos disponibles`;
+                
+                renderList();
+
+                // Autocargar en PC
+                if(window.innerWidth > 1024 && db.length > 0) load(db[0]);
+
+            } catch (error) {
+                console.error(error);
+                elList.innerHTML = `<div class="p-4 text-center text-xs text-red-500 bg-red-50 m-4 rounded">Error cargando Drive. Verifique la URL del Script.</div>`;
+            }
+        };
+
+        // --- 2. RENDERIZADO ---
+        function normalize(text) {
+            return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        function renderList() {
+            const rawQuery = searchInput.value;
+            const query = normalize(rawQuery);
+            
+            const filtered = db.filter(item => 
+                (filter === 'all' || item.type === filter) &&
+                normalize(item.title).includes(query)
+            );
+
+            elList.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                elList.innerHTML = `<div class="p-10 text-center opacity-50"><span class="material-icons-round text-3xl mb-2 text-slate-300">search_off</span><p class="text-xs">Sin resultados</p></div>`;
+                return;
+            }
+
+            filtered.forEach((item, idx) => {
+                const isActive = item.id === currentId;
+                const isVideo = item.type === 'video';
+                
+                // Resaltado de búsqueda
+                let displayTitle = item.title;
+                if (query.length > 0) {
+                    const regex = new RegExp(`(${rawQuery})`, 'gi');
+                    displayTitle = item.title.replace(regex, '<mark>$1</mark>');
+                }
+
+                const el = document.createElement('div');
+                el.style.animationDelay = `${idx * 30}ms`;
+                el.className = `p-3 rounded-xl flex items-start gap-3 cursor-pointer transition-all duration-200 border fade-enter ${isActive ? 'active-item shadow-sm bg-white' : 'bg-white border-transparent hover:border-slate-200'}`;
+                el.onclick = () => load(item);
+
+                const iconColor = isVideo ? 'text-blue-600 bg-blue-50' : 'text-red-600 bg-red-50';
+                const iconName = isVideo ? 'play_circle' : 'article';
+
+                el.innerHTML = `
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${iconColor} mt-0.5">
+                        <span class="material-icons-round text-xl">${iconName}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-[11px] md:text-xs font-bold text-slate-700 leading-snug ${isActive ? 'text-sedes-800' : ''}">${displayTitle}</h4>
+                        <div class="flex items-center gap-2 mt-1.5 opacity-70">
+                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-wide">${item.type}</span>
+                            <span class="text-[9px] text-slate-400 font-mono">${item.date}</span>
+                        </div>
+                    </div>
+                `;
+                elList.appendChild(el);
+            });
+        }
+
+        // --- 3. CARGAR RECURSO ---
+        function load(item) {
+            currentId = item.id;
+            emptyState.classList.add('hidden');
+            renderList();
+
+            if(window.innerWidth < 1024) toggleSidebar(false);
+
+            viewContainer.classList.remove('hidden');
+            
+            // Configurar Iframe (Funciona para Video y PDF en Drive Preview)
+            iframe.src = item.embedLink;
+            
+            // Configurar barra PC
+            titlePc.innerText = item.title;
+            btnDown.href = item.downloadLink;
+
+            // Manejo específico Móvil
+            if (item.type === 'pdf' && window.innerWidth < 1024) {
+                // En móvil, mostrar overlay para PDF
+                mobOverlay.classList.remove('hidden');
+                mobTitle.innerText = item.title;
+                btnMobOpen.href = item.embedLink;
+            } else {
+                // Para video o PC, ocultar overlay
+                mobOverlay.classList.add('hidden');
+            }
+        }
+
+        // UTILS
+        function toggleSidebar(force) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            const shouldOpen = force !== undefined ? force : isClosed;
+
+            if (shouldOpen) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function setFilter(t) {
+            filter = t;
+            ['all', 'video', 'pdf'].forEach(k => {
+                const btn = document.getElementById('btn-' + k);
+                if(k === t) btn.className = "flex-1 py-1.5 text-[10px] font-bold rounded shadow-sm bg-sedes-600 text-white transition-all";
+                else btn.className = "flex-1 py-1.5 text-[10px] font-bold rounded text-slate-500 hover:bg-slate-100 transition-all";
+            });
+            renderList();
+        }
+    </script>
+</body>
+</html>
